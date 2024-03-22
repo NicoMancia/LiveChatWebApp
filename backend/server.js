@@ -1,40 +1,68 @@
-import  express from "express";
+//package imports
+import path from "path";
+import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 
+//file imports
 import authRoutes from "./routes/auth.routes.js";
-import messageRoutes from "./routes/message.routes.js";
+import messagesRoutes from "./routes/message.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
 import connectToMongoDB from "./db/connectToMongoDB.js";
 import { app, server } from "./socket/socket.js";
 
+import helmet from "helmet";
+//This package helps validate and sanitize incoming request data to prevent injection attacks and other security vulnerabilities.
+import { body, validationResult } from "express-validator";
+import mongoSanitize from "express-mongo-sanitize";
+import csurf from "csurf";
+import rateLimit from "express-rate-limit";
 
-//stiamo assegnando un valore alla variabile PORT: 
-//gli assegnamo il volere che sta dentro il file ".env" --> (8000) || (oopure) 5000;
+
+
+//variables
 const PORT = process.env.PORT || 5000;
+
+const __dirname= path.resolve();
 
 dotenv.config();
 
-//per dichiarare che la richiesta che verrà caricata sarà un file ".json" da req.body
-app.use(express.json());
+app.use(express.json());//parse requests from req.body on auth.controller.js
 app.use(cookieParser());
 
-//quando viene usato questo "path" viene fatta una chiamata alla classe auth.routes
-app.use("/api/auth", authRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/users", userRoutes);
-//chiamata esempio per mostrare un messaggio a video nella route --> "/"
-// req = richiesta ; res = risposta
-//app.get("/", (req, res) => {
-    //root route http://localhost:5000/
-//    res.send("hello word!!!");
-//});
+app.use("/api/auth",authRoutes);
+app.use("/api/messages",messagesRoutes);
+app.use("/api/users",userRoutes);
 
-//imposto come porta di ascolto del server la numero "PORT"; 
-//richiamo la funzione "connectToMongoDB()" per la connessione
-//invio un messaggio di conferma con "console.log" 
-server.listen (PORT, () => {
+app.use(express.static(path.join(__dirname, "/frontEnd/dist")));
+
+app.get("*", (req,res) =>{
+    res.sendFile(path.join(__dirname,"frontEnd","dist","index.html"));
+})
+
+
+
+//Helmet helps secure Express.js apps by setting various HTTP headers. 
+//These headers can mitigate certain kinds of attacks, such as cross-site scripting (XSS), clickjacking, and other code injection attacks.
+app.use(helmet());
+
+//sanitize user input to prevent NoSQL injection attacks.
+app.use(mongoSanitize());
+
+// Implement CSRF (Cross-Site Request Forgery) protection to prevent unauthorized commands sent by a user that the web application trusts.
+app.use(csurf());
+
+//Implement rate limiting to prevent brute force attacks or abuse of your APIs.
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500 // limit each IP to 500 requests per windowMs
+});
+app.use(limiter);
+
+
+
+server.listen(PORT, () => {
     connectToMongoDB();
-    console.log(`Server Running on port: ${PORT}`)
+    console.log(`Server running on port ${PORT}`)
 });

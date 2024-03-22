@@ -1,7 +1,5 @@
-import Conversation from "../models/conversation.model.js";
+ import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
-import { getReceiverSocketId, io } from "../socket/socket.js";
-
 
 /*
     async --> dichiara che una funzione è asincrona, quindi restituirà una Promise come risultato. 
@@ -17,41 +15,30 @@ export const sendMessage = async (req, res) => {
         const {id: receiverId} = req.params;
         const senderId = req.user._id;
 
-        //trovo se esiste già un conversazione con i due utenti con l'ID ("senderId, receiverId")
         let conversation = await Conversation.findOne({
-            participants:{
-                $all: [senderId, receiverId]
-            },
-        })
+            participants:{ $all: [senderId,receiverId]},
+        });
 
         //se non esiste già una conversazione, la creo
-        if (!conversation) {
-            conversation = await Conversation.create({
+        if(!conversation){
+            conversation= await Conversation.create({
                 participants: [senderId, receiverId],
-            })
-        };
-        
+            });
+        }
+
         //creo un nuovo messaggio opo aver creato/trovato la conversazione
         const newMessage = new Message({
             senderId,
             receiverId,
-            message
+            message,
         });
 
         //se c'è un nuovo messaggio, lo inserisco dentro all'array dei messaggi tramite "conversation.message.push(newMessage._id);"
-        if (newMessage) {
+        if(newMessage){
             conversation.messages.push(newMessage._id);
-        };
-
+        }
         //salvo nel database
-        /* 
-            await conversation.save();
-            await newMessage.save();
-            
-            OTTIMIZZATO DIVENTA --> await Promise.all([conversation.save(), newMessage.save()]);
-            perché così le funzioni "conversation.save(), newMessage.save()" vengono 
-            lanciate insieme e non prima una poi l'altra
-        */
+        //esegue entrambe le linee di codice in parallelo ed è più veloce
         await Promise.all([conversation.save(), newMessage.save()]);
 
         const receiverSocketId = getReceiverSocketId(receiverId);
@@ -60,35 +47,36 @@ export const sendMessage = async (req, res) => {
             io.to(receiverSocketId).emit("newMessage",newMessage);
         }
         //stampo il messaggio che ho appena creato e salvato
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if(receiverSocketId){
+            //io.to(<socket_id>).emit() è usato per inviare eventi ad un singolo client
+            io.to(receiverSocketId).emit("newMessage",newMessage);
+        }
+
         res.status(201).json(newMessage);
-
-    } catch (error) {
-        console.log("Error in sendMessage controller: ", error.message);
-        res.status(500).json({error: "internal serve error"});
-    };
+    }catch(error){
+        console.log("Errore del controller sul sendMessage\n", error.message);
+        res.status(500).json({error:"Errore del server interno"});
+    }
 };
-
-export const getMessage = async (req,res) => {
-    try {
-        //parametro richiesto nel URL
-        const { id: userToChatId} = req.params;
-        const senderId = req.user._id;
-        //trovo la conversazione tra i 2 utenti attraverso gli ID
-        const conversation = await Conversation.findOne({
-            participants:{
-                $all: [senderId, userToChatId]
-            },
-        //con il metodo fornito da mongoose --> .populate("messages") possiamo visualizzare i contenuti dei messaggi e non i riferimenti  
+export const getMessages = async (req,res) => {
+    try{
+        //parametro richiesto nel URL        
+        const {id:userToChatId}= req.params;
+        const senderId=req.user._id;
+        //trovo la conversazione tra i 2 utenti attraverso gli ID        
+        const conversation= await Conversation.findOne({
+            participants: {$all:[senderId,userToChatId]},
+        //con il metodo fornito da mongoose --> .populate("messages") possiamo visualizzare i contenuti dei messaggi e non i riferimenti          
         }).populate("messages");
-
+        
         if(!conversation) return res.status(200).json([]);
-
-        const messages = conversation.messages;
- 
+        
+        const messages= conversation.messages;
+        
         res.status(200).json(messages);
-
-    } catch (error) {
-        console.log("Error in getMessage controller: ", error.message)
-        res.status(500).json({error: "internal serve error"});
-    };
-};
+    }catch(error){
+        console.log("Errore del controller sul sendMessage\n", error.message);
+        res.status(500).json({error:"Errore del server interno"});
+    }
+}
