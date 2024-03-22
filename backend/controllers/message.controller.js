@@ -1,5 +1,7 @@
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import { getReceiverSocketId, io } from "../socket/socket.js";
+
 
 /*
     async --> dichiara che una funzione è asincrona, quindi restituirà una Promise come risultato. 
@@ -52,6 +54,11 @@ export const sendMessage = async (req, res) => {
         */
         await Promise.all([conversation.save(), newMessage.save()]);
 
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if(receiverSocketId){
+            //io.to(<socket_id>).emit() è usato per inviare eventi ad un singolo client
+            io.to(receiverSocketId).emit("newMessage",newMessage);
+        }
         //stampo il messaggio che ho appena creato e salvato
         res.status(201).json(newMessage);
 

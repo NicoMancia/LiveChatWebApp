@@ -7,8 +7,8 @@ import messageRoutes from "./routes/message.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
 import connectToMongoDB from "./db/connectToMongoDB.js";
+import { app, server } from "./socket/socket.js";
 
-const app = express();
 
 //stiamo assegnando un valore alla variabile PORT: 
 //gli assegnamo il volere che sta dentro il file ".env" --> (8000) || (oopure) 5000;
@@ -34,7 +34,7 @@ app.use("/api/users", userRoutes);
 //imposto come porta di ascolto del server la numero "PORT"; 
 //richiamo la funzione "connectToMongoDB()" per la connessione
 //invio un messaggio di conferma con "console.log" 
-app.listen (PORT, () => {
+server.listen (PORT, () => {
     connectToMongoDB();
     console.log(`Server Running on port: ${PORT}`)
 });
