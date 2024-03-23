@@ -1,5 +1,5 @@
 import express from "express";
-import { getMessage, sendMessage } from "../controllers/message.controller.js";
+import { getMessages, sendMessage } from "../controllers/message.controller.js";
 import protectRoute from "../middleware/protectRoute.js";
 
 /* 
@@ -16,6 +16,6 @@ const router = express.Router();
  */
 router.post("/send/:id", protectRoute, sendMessage);
 //per visualizzare i messaggi tra due utenti
-router.get("/:id", protectRoute, getMessage);
+router.get("/:id", protectRoute, getMessages);
 
 export default router;

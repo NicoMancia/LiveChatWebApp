@@ -41,11 +41,6 @@ export const sendMessage = async (req, res) => {
         //esegue entrambe le linee di codice in parallelo ed è più veloce
         await Promise.all([conversation.save(), newMessage.save()]);
 
-        const receiverSocketId = getReceiverSocketId(receiverId);
-        if(receiverSocketId){
-            //io.to(<socket_id>).emit() è usato per inviare eventi ad un singolo client
-            io.to(receiverSocketId).emit("newMessage",newMessage);
-        }
         //stampo il messaggio che ho appena creato e salvato
         const receiverSocketId = getReceiverSocketId(receiverId);
         if(receiverSocketId){
