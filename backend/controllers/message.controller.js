@@ -1,5 +1,6 @@
  import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import { getReceiverSocketId } from "../socket/socket.js";
 
 /*
     async --> dichiara che una funzione è asincrona, quindi restituirà una Promise come risultato. 
