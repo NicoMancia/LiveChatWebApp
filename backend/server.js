@@ -47,6 +47,7 @@ app.get("*", (req,res) =>{
 //These headers can mitigate certain kinds of attacks, such as cross-site scripting (XSS), clickjacking, and other code injection attacks.
 app.use(helmet());
 
+
 //sanitize user input to prevent NoSQL injection attacks.
 app.use(mongoSanitize());
 
